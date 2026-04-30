@@ -1,0 +1,120 @@
+{
+  "appHeaderText": "Authenticator",
+  "devMode": {
+    "enabled": false,
+    "host": "https://localhost:9443",
+    "localServerCertificate": "assets/certs/wso2is.pem"
+  },
+  "security": {
+    "enableAppScreenLocks": false
+  },
+  "feature": {
+    "push": {
+      "numberOfHistoryRecords": 5,
+      "useApnsOnIos": false
+    }
+  },
+  "ui": {
+    "theme": {
+      "activeTheme": "light",
+      "light": {
+        "colors": {
+          "screen": {
+            "background": "#fbfbfb"
+          },
+          "overlay": {
+            "background": "#00000080",
+            "text": "#ffffff"
+          },
+          "header": {
+            "background": "#ffffff",
+            "text": "#17181aff",
+            "dropdown": {
+              "background": "#ffffff"
+            }
+          },
+          "button": {
+            "primary": {
+              "background": "#FF7300",
+              "text": "#ffffff"
+            },
+            "secondary": {
+              "background": "#f0f1f3ff",
+              "text": "#868c99ff"
+            }
+          },
+          "typography": {
+            "primary": "#56585eff",
+            "secondary": "#868c99ff"
+          },
+          "card": {
+            "background": "#f5f6f9ff",
+            "border": "#d1d9e6"
+          },
+          "alert": {
+            "error": {
+              "background": "#fdebeaff",
+              "text": "#F44336"
+            },
+            "info": {
+              "background": "#e5f2fbff",
+              "text": "#2196F3"
+            },
+            "success": {
+              "background": "#edf9edff",
+              "text": "#4CAF50"
+            },
+            "loading": {
+              "background": "#fafafaff",
+              "text": "#181818ff"
+            },
+            "message": {
+              "background": "#ffffffff",
+              "text": "#a2a2a2ff"
+            },
+            "warning": {
+              "background": "#fff4e5ff",
+              "text": "#FF9800"
+            }
+          },
+          "codeCircle": {
+            "background": "#f8f8f9",
+            "timer": {
+              "background": "#e2e3e4ff",
+              "validity": {
+                "low": "#F44336",
+                "medium": "#FF9800",
+                "high": "#4CAF50"
+              }
+            },
+            "shadowColor": "#000000",
+            "text": "#000000de",
+            "subText": "#00000066"
+          },
+          "avatar": [
+            { "bg": "#FFB3B3", "text": "#B91C1C" },
+            { "bg": "#B3E5FC", "text": "#0369A1" },
+            { "bg": "#B3D9FF", "text": "#1E40AF" },
+            { "bg": "#C8E6C9", "text": "#166534" },
+            { "bg": "#FFF3B3", "text": "#CA8A04" },
+            { "bg": "#FFD1FF", "text": "#A21CAF" },
+            { "bg": "#B3D4FF", "text": "#3730A3" },
+            { "bg": "#D1C4E9", "text": "#6B21A8" },
+            { "bg": "#B3F5F5", "text": "#0F766E" },
+            { "bg": "#FFDB9B", "text": "#EA580C" },
+            { "bg": "#C8F7C5", "text": "#15803D" },
+            { "bg": "#FFCAB0", "text": "#DC2626" },
+            { "bg": "#C1E4FF", "text": "#1D4ED8" },
+            { "bg": "#D1C4E9", "text": "#7C3AED" },
+            { "bg": "#E1DFFF", "text": "#5B21B6" },
+            { "bg": "#FFE1F3", "text": "#BE185D" },
+            { "bg": "#FFCAB0", "text": "#F97316" },
+            { "bg": "#B3F2E6", "text": "#047857" },
+            { "bg": "#B3F5F5", "text": "#0891B2" },
+            { "bg": "#E1DFFF", "text": "#6366F1" }
+          ]
+        }
+      }
+    }
+  }
+}

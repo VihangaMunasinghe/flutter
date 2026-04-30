@@ -1,0 +1,11 @@
+include: package:very_good_analysis/analysis_options.yaml
+
+linter:
+  rules:
+    # public_member_api_docs is a library concern; this is an application.
+    public_member_api_docs: false
+    # flutter: and flutter_test: SDK deps are kept first by convention.
+    sort_pub_dependencies: false
+    # FcmMessagingService is instantiated via PushMessagingService interface;
+    # the lint cannot trace through the interface to the concrete class.
+    unreachable_from_main: false

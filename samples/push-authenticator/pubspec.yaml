@@ -1,0 +1,53 @@
+name: asgardeo_push_authenticator
+description: "Asgardeo Push Authenticator — Push notification-based authentication sample for Asgardeo (WSO2 Identity Server)."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  asgardeo_push_auth:
+    path: ../../packages/push-authentication
+  cupertino_icons: ^1.0.8
+  firebase_core: ^4.7.0
+  firebase_messaging: ^16.2.0
+  flutter_native_splash: ^2.4.5
+  flutter_riverpod: ^3.3.1
+  go_router: ^17.2.1
+  http: ^1.4.0
+  mobile_scanner: ^7.0.0
+  shared_preferences: ^2.3.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_launcher_icons: ^0.14.3
+  very_good_analysis: ^10.2.0
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/logo-icon.png"
+  adaptive_icon_background: "#ffffff"
+  adaptive_icon_foreground: "assets/images/logo-icon.png"
+  remove_alpha_ios: true
+
+flutter_native_splash:
+  color: "#ffffff"
+  image: "assets/images/logo-icon.png"
+  android_12:
+    color: "#ffffff"
+    icon_background_color: "#ffffff"
+    image: "assets/images/logo-icon-splash-android.png"
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/config/app_config.json
+    - assets/images/
+    - assets/certs/
