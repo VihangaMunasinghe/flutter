@@ -1,0 +1,108 @@
+# -------------------------------------------------------------------------------------
+#
+# Copyright (c) 2026, WSO2 LLC. (https://www.wso2.com).
+#
+# WSO2 LLC. licenses this file to you under the Apache License,
+# Version 2.0 (the "License"); you may not use this file except
+# in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+# --------------------------------------------------------------------------------------
+
+# Publishes to pub.dev when the bot's release PR is merged. The Triple-Lock
+# condition ensures only the canonical bot-authored release branch can trigger
+# a publish — random PRs (including from forks) are rejected.
+
+name: 🚀 Release
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  publish:
+    name: 📦 Publish
+    # Triple-Lock: merged + canonical bot branch + bot author. All three must
+    # hold; removing any one allows spoofing.
+    if: >-
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.ref == 'chore/automated-release' &&
+      github.event.pull_request.user.login == 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: 💙 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: 🔆 Cache pub
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('pubspec.lock') }}
+
+      - name: 🧩 Install workspace deps (root)
+        run: dart pub get
+
+      - name: 🍈 Bootstrap workspace
+        run: dart run melos bootstrap
+
+      - name: 🤖 Configure bot identity for tagging
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      # Reads name + version from each publishable package's pubspec.yaml and
+      # creates a `<package>-v<version>` tag if absent. Tags are pushed before
+      # publish so pub.dev OIDC can match against the configured tag pattern.
+      - name: 🏷️ Generate per-package Git tags from pubspec versions
+        run: |
+          set -euo pipefail
+          while IFS= read -r pubspec; do
+            publish_to=$(awk '/^publish_to:/ {print $2}' "$pubspec")
+            if [ "$publish_to" = "none" ] || [ "$publish_to" = "'none'" ]; then
+              continue
+            fi
+            pkg_name=$(awk '/^name:/ {print $2; exit}' "$pubspec")
+            pkg_version=$(awk '/^version:/ {print $2; exit}' "$pubspec")
+            tag="${pkg_name}-v${pkg_version}"
+
+            if git rev-parse "refs/tags/${tag}" >/dev/null 2>&1; then
+              echo "Tag ${tag} already exists, skipping."
+              continue
+            fi
+
+            echo "Creating tag ${tag}"
+            git tag -a "${tag}" -m "Release ${tag}"
+            git push origin "${tag}"
+          done < <(find packages samples -name pubspec.yaml -not -path '*/.dart_tool/*' -not -path '*/example/*')
+
+      # `command.publish.hooks.pre` in pubspec.yaml runs `analyze` + `test`
+      # before the actual publish. No separate steps needed here.
+      - name: 📤 Publish to pub.dev (OIDC, topological order)
+        run: dart run melos publish --no-dry-run --yes

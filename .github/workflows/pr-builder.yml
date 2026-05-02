@@ -1,0 +1,248 @@
+# -------------------------------------------------------------------------------------
+#
+# Copyright (c) 2026, WSO2 LLC. (https://www.wso2.com).
+#
+# WSO2 LLC. licenses this file to you under the Apache License,
+# Version 2.0 (the "License"); you may not use this file except
+# in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+# --------------------------------------------------------------------------------------
+
+# Validates every PR with format, analyze, tests, and impact-scoped sample builds.
+
+name: 👷 PR Builder
+
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+  workflow_dispatch:
+
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  changes:
+    name: 🔍 Detect changed paths
+    runs-on: ubuntu-latest
+    outputs:
+      sample_affected: ${{ steps.filter.outputs.sample_affected }}
+    steps:
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Native filter — no third-party actions. Sample app depends on the SDK,
+      # so a change in either path forces the sample build smoke jobs.
+      - name: 🔍 Compute affected paths (native git diff)
+        id: filter
+        run: |
+          set -euo pipefail
+          BASE="${{ github.event.pull_request.base.sha }}"
+          HEAD="${{ github.event.pull_request.head.sha }}"
+          CHANGED=$(git diff --name-only "$BASE" "$HEAD")
+          echo "Changed files:"
+          echo "$CHANGED"
+          if echo "$CHANGED" | grep -qE '^(samples/push-authenticator/|packages/push-authentication/)'; then
+            echo "sample_affected=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "sample_affected=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  lint:
+    name: ⬣ Lint & Analyze (STATIC ANALYSIS)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        flutter-channel: [stable]
+    steps:
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 💙 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ matrix.flutter-channel }}
+          cache: true
+
+      - name: 🔆 Cache pub
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      - name: 🧩 Install workspace deps (root)
+        run: dart pub get
+
+      - name: 🍈 Bootstrap workspace
+        run: dart run melos bootstrap
+
+      - name: 🎨 Format check
+        run: dart run melos run format:check
+
+      - name: 🦄 Analyze
+        run: dart run melos run analyze
+
+  test:
+    name: 👾 Unit Test (TESTING)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        flutter-channel: [stable]
+    steps:
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 💙 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ matrix.flutter-channel }}
+          cache: true
+
+      - name: 🔆 Cache pub
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      - name: 🧩 Install workspace deps (root)
+        run: dart pub get
+
+      - name: 🍈 Bootstrap workspace
+        run: dart run melos bootstrap
+
+      - name: 🧪 Test changed packages and their dependents
+        run: dart run melos run test:diff
+
+      - name: 📊 Coverage
+        run: dart run melos run test:coverage
+
+      - name: 🧮 Install lcov
+        run: sudo apt-get update && sudo apt-get install -y lcov
+
+      - name: 🧬 Merge coverage
+        run: dart run melos run coverage:merge
+
+      - name: ☁️ Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
+
+  # Sample-app build smoke runs only when the SDK or sample sources change,
+  # gated by the `changes` job. iOS in particular is expensive (macos-latest +
+  # CocoaPods) — skipping it on doc/CI-only PRs reclaims the most CI time.
+  build-android:
+    name: 🤖 Build Sample (Android)
+    needs: changes
+    if: needs.changes.outputs.sample_affected == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v4
+
+      - name: ☕ Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: 💙 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: 🔆 Cache pub
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('pubspec.lock') }}
+
+      - name: 🧩 Install workspace deps (root)
+        run: dart pub get
+
+      - name: 🍈 Bootstrap workspace
+        run: dart run melos bootstrap
+
+      - name: 🤖 Build APK
+        run: dart run melos run build:apk
+
+  build-ios:
+    name: 🍎 Build Sample (iOS)
+    needs: changes
+    if: needs.changes.outputs.sample_affected == 'true'
+    runs-on: macos-latest
+    steps:
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v4
+
+      - name: 💙 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: 🔆 Cache pub
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('pubspec.lock') }}
+
+      - name: 🧩 Install workspace deps (root)
+        run: dart pub get
+
+      - name: 🍈 Bootstrap workspace
+        run: dart run melos bootstrap
+
+      - name: 🍎 Build iOS
+        run: dart run melos run build:ios
+
+  publish-dry-run:
+    name: 📦 Publish Dry-Run
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v4
+
+      - name: 💙 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: 🔆 Cache pub
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('pubspec.lock') }}
+
+      - name: 🧩 Install workspace deps (root)
+        run: dart pub get
+
+      - name: 🍈 Bootstrap workspace
+        run: dart run melos bootstrap
+
+      - name: 📦 Publish dry-run
+        run: dart run melos run publish:dry
