@@ -4,14 +4,16 @@ publish_to: 'none'
 
 version: 1.0.0+1
 
+# Workspace member — resolved against the root pubspec.lock.
+resolution: workspace
+
 environment:
   sdk: ^3.11.0
 
 dependencies:
   flutter:
     sdk: flutter
-  asgardeo_push_auth:
-    path: ../../packages/push-authentication
+  asgardeo_push_auth: ^0.0.1
   cupertino_icons: ^1.0.8
   firebase_core: ^4.7.0
   firebase_messaging: ^16.2.0
@@ -26,7 +28,6 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_launcher_icons: ^0.14.3
-  very_good_analysis: ^10.2.0
 
 flutter_launcher_icons:
   android: true

@@ -1,0 +1,21 @@
+# Dart / Flutter
+.dart_tool/
+.packages
+.pub/
+build/
+
+# Per-package lockfiles — the workspace uses the single root pubspec.lock.
+packages/**/pubspec.lock
+samples/**/pubspec.lock
+
+# Coverage
+coverage/
+*.lcov
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store

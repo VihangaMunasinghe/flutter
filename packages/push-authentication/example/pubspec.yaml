@@ -3,13 +3,15 @@ description: Example Flutter app demonstrating asgardeo_push_auth.
 publish_to: none
 version: 1.0.0
 
+# Workspace member — resolved against the root pubspec.lock.
+resolution: workspace
+
 environment:
-  sdk: ^3.0.0
+  sdk: ^3.11.0
   flutter: ">=3.0.0"
 
 dependencies:
-  asgardeo_push_auth:
-    path: ../
+  asgardeo_push_auth: ^0.0.1
   flutter:
     sdk: flutter
 

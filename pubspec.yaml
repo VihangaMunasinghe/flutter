@@ -1,0 +1,109 @@
+name: asgardeo_flutter_workspace
+publish_to: none
+
+# Required by Melos for `linkToCommits: true` — produces clickable commit
+# links in generated CHANGELOG entries. Update when transferred to the
+# asgardeo organization.
+repository: https://github.com/VihangaMunasinghe/flutter
+
+environment:
+  sdk: ^3.11.0
+
+workspace:
+  - packages/push-authentication
+  - packages/push-authentication/example
+  - samples/push-authenticator
+
+dev_dependencies:
+  melos: ^7.5.1
+  very_good_analysis: ^10.2.0
+
+# All Melos configuration (scripts + command hooks) lives here under `melos:`.
+# Invoke via `dart run melos <command>` so the version pinned in pubspec.lock
+# is used in CI and locally — eliminating Melos drift.
+melos:
+  packages:
+    - packages/**
+    - samples/**
+
+  command:
+    bootstrap:
+      runPubGetInParallel: false
+
+    # `melos version` reads Conventional Commits, bumps each package, and
+    # writes per-package CHANGELOG.md. Git side-effects are disabled — the
+    # release-PR workflow owns commits and tags so the bot is the sole signer.
+    version:
+      generateCommit: false
+      updateGitTagRefs: false
+      workspaceChangelog: true
+      linkToCommits: true
+      branch: main
+      includeCommitId: false
+      includeScopes: true
+      message: |
+        chore(release): bump versions
+
+        {new_package_versions}
+
+    # Block any publish that would ship without passing analyze + test.
+    publish:
+      hooks:
+        pre: dart run melos run analyze && dart run melos run test
+
+  # Scripts inline `dart run melos exec ...` instead of the top-level `exec:`
+  # block. This avoids Melos's nested-self invocation (which assumes the
+  # `melos` binary is on PATH — incompatible with dev_dependency mode).
+  scripts:
+    analyze:
+      description: Static analysis across all packages.
+      run: dart run melos exec --concurrency 4 -- dart analyze --fatal-infos
+
+    format:
+      description: Apply dart format to all packages.
+      run: dart run melos exec --concurrency 4 -- dart format .
+
+    format:check:
+      description: Verify formatting (CI).
+      run: dart run melos exec --concurrency 4 -- dart format --output=none --set-exit-if-changed .
+
+    # Sample currently lacks proper tests; ignore it via --ignore until real
+    # widget/integration tests land.
+    test:
+      description: Run flutter test in packages with a test directory.
+      run: dart run melos exec --concurrency 1 --dir-exists=test --ignore=asgardeo_push_authenticator -- flutter test
+
+    test:coverage:
+      description: Run tests with coverage; emits coverage/lcov.info per package.
+      run: dart run melos exec --concurrency 1 --dir-exists=test --ignore=asgardeo_push_authenticator -- flutter test --coverage
+
+    test:diff:
+      description: Test only changed packages and their dependents.
+      run: dart run melos exec --diff="origin/main" --include-dependents --dir-exists=test --ignore=asgardeo_push_authenticator -- flutter test
+
+    coverage:merge:
+      description: Combine per-package lcov files into coverage/lcov.info at root.
+      run: |
+        mkdir -p coverage
+        lcov $(find packages samples -path '*/coverage/lcov.info' -exec echo -a {} \;) -o coverage/lcov.info
+
+    build:apk:
+      description: Debug APK build for the sample app.
+      run: dart run melos exec --scope=asgardeo_push_authenticator -- flutter build apk --debug
+
+    build:ios:
+      description: Debug iOS build (no codesign) for the sample app.
+      run: dart run melos exec --scope=asgardeo_push_authenticator -- flutter build ios --debug --no-codesign
+
+    publish:dry:
+      description: Dry-run pub publish for publishable packages, in topological order.
+      run: dart run melos exec --order-dependents --no-private -- dart pub publish --dry-run
+
+    outdated:
+      description: Show outdated dependencies per package.
+      run: dart run melos exec -- dart pub outdated
+
+    clean:
+      description: Remove .dart_tool, build, and coverage artifacts.
+      run: |
+        rm -rf .dart_tool build coverage

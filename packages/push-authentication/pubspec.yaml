@@ -1,6 +1,6 @@
 name: asgardeo_push_auth
 description: Push-notification-based authentication SDK for Asgardeo (WSO2 Identity Server).
-version: 0.1.0
+version: 0.0.1
 homepage: https://wso2.com/asgardeo/
 topics:
   - authentication
@@ -9,8 +9,11 @@ topics:
   - wso2
   - mfa
 
+# Workspace member — resolved against the root pubspec.lock.
+resolution: workspace
+
 environment:
-  sdk: ^3.0.0
+  sdk: ^3.11.0
   flutter: ">=3.0.0"
 
 dependencies:
@@ -28,4 +31,3 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   mocktail: ^1.0.4
-  very_good_analysis: ^10.2.0
